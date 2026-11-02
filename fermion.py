@@ -5,6 +5,45 @@ This script is for production of fermionic dark magnetic monopole
 import lhapdf
 import numpy as np
 from scipy.integrate import dblquad
+from scipy.special import spence
+import matplotlib.pyplot as plt
+
+
+def li2(z):
+    """Dilogarithm Li2(z). SciPy's spence uses an older convention: Li2(z) = spence(1 - z)."""
+    return spence(1 - z)
+
+def phi(xi: float) -> float:
+    """Phi function defined in eq.148 of hep-ph/970749v2
+    xi: real number bigger than 0.
+    """
+    if xi > 4:
+        u = np.sqrt(xi**2 - 4 * xi)
+        return 0.5 * u * np.log((xi - u)/(xi + u))
+    elif xi == 0:
+        return 0
+    else:
+        v = np.sqrt(4 * xi - xi**2)
+        return v * np.arctan(v / xi)
+
+
+def psi(p: float, xi: float) -> float:
+    """Psi function defined in eq.149 of hep-ph/970749v2
+    Args:
+        p: real number between 0 and 1.
+        xi: real numbe > 0.
+    """
+    if xi < 4:
+        term_1 = 0.5 (np.log(0.5*(xi - 2 + np.sqrt(xi**2 - 4 * xi))))**2
+        term_2 = 2 * li2(1 + 0.5 * p * (-2 + xi + 1j * np.sqrt(4 * xi - xi**2))).real
+        term_3 = -1.5 * np.pi**2 + 4 * np.pi * np.arctan(np.sqrt(4 * xi * xi**2)/xi)
+        term_4 = 2 * np.pi * np.arctan((2 * p + xi - 2)/np.sqrt(4 * xi - xi**2))
+        return term_1 * term_2 * term_3 * term_4
+
+x = np.linspace(0.0001, 3.99, 100)
+y = li2(x)
+plt.plot(x, y)
+plt.show()
 
 
 def sigma_hat(s: float, m_chi: float, m_D: float, m_q: float, epsilon_g_D: float, q: float) -> float:
@@ -63,7 +102,7 @@ pdf = lhapdf.mkPDF("NNPDF31_lo_as_0118", 0)
 
 S = 13600.0**2   # squared collision energy of the two protons (LHC Run 3), in GeV^2
 
-M_CHI = 10.0         # dark monopole mass, GeV
+M_CHI = 1000.0         # dark monopole mass, GeV
 M_D = 1000000.0            # dark photon mass, GeV
 EPS_G_D = 1          # kinetic mixing times dark magnetic coupling
 GEV2_TO_PB = 3.894e8   # 1 GeV^-2 = 3.894e8 picobarns
