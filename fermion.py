@@ -13,6 +13,36 @@ def li2(z):
     """Dilogarithm Li2(z). SciPy's spence uses an older convention: Li2(z) = spence(1 - z)."""
     return spence(1 - z)
 
+
+
+def psi(p: float, xi: float) -> float:
+    """Psi function defined in eq.149 of hep-ph/970749v2
+    Args:
+        p: real number between 0 and 1.
+        xi: real numbe > 0.
+    """
+    if xi < 4:
+        term_1 = -2 * np.arctan(np.sqrt((4 - xi)/xi))**2
+        term_2 = 2 * li2(1 + 0.5 * p * (-2 + xi + 1j * np.sqrt(4 * xi - xi**2))).real
+        term_3 = -1.5 * np.pi**2 + 4 * np.pi * np.arctan(np.sqrt(4 * xi * xi**2)/xi)
+        term_4 = 2 * np.pi * np.arctan((2 * p + xi - 2)/np.sqrt(4 * xi - xi**2))
+        return term_1 + term_2 + term_3 + term_4
+    else:
+        term_1 = 0.5 * np.log(0.5 * (xi - 2 + np.sqrt(xi**2 - 4 * xi)))**2
+        term_2 = li2(1 + 0.5 * p * (-2 + xi + np.sqrt(xi**2 - 4 * xi)) + 0.001j).real
+        term_3 = li2(1 + 0.5 * p * (-2 + xi - np.sqrt(xi**2 - 4 * xi)) + 0.001j).real
+        term_4 = -0.5 * np.pi**2
+        return term_1 + term_2 + term_3 + term_4
+
+x = np.linspace(0.001, 3.999, 100)
+y = np.zeros(100)
+for i in range(len(x)):
+    y[i] = psi(0.5, x[i])
+plt.plot(x, y)
+plt.show()
+
+
+
 def phi(xi: float) -> float:
     """Phi function defined in eq.148 of hep-ph/970749v2
     xi: real number bigger than 0.
@@ -26,24 +56,6 @@ def phi(xi: float) -> float:
         v = np.sqrt(4 * xi - xi**2)
         return v * np.arctan(v / xi)
 
-
-def psi(p: float, xi: float) -> float:
-    """Psi function defined in eq.149 of hep-ph/970749v2
-    Args:
-        p: real number between 0 and 1.
-        xi: real numbe > 0.
-    """
-    if xi < 4:
-        term_1 = 0.5 (np.log(0.5*(xi - 2 + np.sqrt(xi**2 - 4 * xi))))**2
-        term_2 = 2 * li2(1 + 0.5 * p * (-2 + xi + 1j * np.sqrt(4 * xi - xi**2))).real
-        term_3 = -1.5 * np.pi**2 + 4 * np.pi * np.arctan(np.sqrt(4 * xi * xi**2)/xi)
-        term_4 = 2 * np.pi * np.arctan((2 * p + xi - 2)/np.sqrt(4 * xi - xi**2))
-        return term_1 * term_2 * term_3 * term_4
-
-x = np.linspace(0.0001, 3.99, 100)
-y = li2(x)
-plt.plot(x, y)
-plt.show()
 
 
 def sigma_hat(s: float, m_chi: float, m_D: float, m_q: float, epsilon_g_D: float, q: float) -> float:
