@@ -24,17 +24,17 @@ def psi(p: float, xi: float) -> float:
     if xi < 4:
         term_1 = -2 * np.arctan(np.sqrt((4 - xi)/xi))**2
         term_2 = 2 * li2(1 + 0.5 * p * (-2 + xi + 1j * np.sqrt(4 * xi - xi**2))).real
-        term_3 = -1.5 * np.pi**2 + 4 * np.pi * np.arctan(np.sqrt(4 * xi * xi**2)/xi)
+        term_3 = -1.5 * np.pi**2 + 4 * np.pi * np.arctan(np.sqrt(4 * xi - xi**2)/xi)
         term_4 = 2 * np.pi * np.arctan((2 * p + xi - 2)/np.sqrt(4 * xi - xi**2))
         return term_1 + term_2 + term_3 + term_4
     else:
         term_1 = 0.5 * np.log(0.5 * (xi - 2 + np.sqrt(xi**2 - 4 * xi)))**2
-        term_2 = li2(1 + 0.5 * p * (-2 + xi + np.sqrt(xi**2 - 4 * xi)) + 0.001j).real
-        term_3 = li2(1 + 0.5 * p * (-2 + xi - np.sqrt(xi**2 - 4 * xi)) + 0.001j).real
+        term_2 = li2(1 + 0.5 * p * (-2 + xi + np.sqrt(xi**2 - 4 * xi)) + 0j).real
+        term_3 = li2(1 + 0.5 * p * (-2 + xi - np.sqrt(xi**2 - 4 * xi)) + 0j).real
         term_4 = -0.5 * np.pi**2
         return term_1 + term_2 + term_3 + term_4
 
-x = np.linspace(0.001, 3.999, 100)
+x = np.linspace(0.001, 20, 100)
 y = np.zeros(100)
 for i in range(len(x)):
     y[i] = psi(0.5, x[i])
