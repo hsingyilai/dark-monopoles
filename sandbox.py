@@ -9,9 +9,14 @@ def li2(z):
 
 
 # Check the convention against known values
-print("Li2(1)   =", li2(1.0),  "  expected pi^2/6 =", np.pi**2 / 6)
-print("Li2(-1)  =", li2(-1.0), "  expected -pi^2/12 =", -np.pi**2 / 12)
-print("Li2(0.5) =", li2(0.5),  "  expected pi^2/12 - ln(2)^2/2 =", np.pi**2/12 - np.log(2)**2/2)
+print("Li2(1)   =", li2(1.0), "  expected pi^2/6 =", np.pi**2 / 6)
+print("Li2(-1)  =", li2(-1.0), "  expected -pi^2/12 =", -(np.pi**2) / 12)
+print(
+    "Li2(0.5) =",
+    li2(0.5),
+    "  expected pi^2/12 - ln(2)^2/2 =",
+    np.pi**2 / 12 - np.log(2) ** 2 / 2,
+)
 
 # Gotcha: a REAL input beyond 1 gives nan; make it complex
 print("Li2(3.0)  =", li2(3.0))
@@ -34,7 +39,7 @@ ax_re.grid(alpha=0.3)
 
 ax_im.plot(x, above.imag, label="just above the axis (x + iε)")
 ax_im.plot(x, below.imag, "--", label="just below the axis (x − iε)")
-ax_im.axvline(1, color="gray", linewidth=0.8)   # the branch cut starts at x = 1
+ax_im.axvline(1, color="gray", linewidth=0.8)  # the branch cut starts at x = 1
 ax_im.set_xlabel("x")
 ax_im.set_ylabel("Im Li₂(x)")
 ax_im.legend()
