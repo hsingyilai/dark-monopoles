@@ -65,9 +65,9 @@ pdf = lhapdf.mkPDF("NNPDF31_lo_as_0118", 0)
 
 S = 13600.0**2  # squared collision energy of the two protons (LHC Run 3), in GeV^2
 
-M_CHI = 10.0  # dark monopole mass, GeV
-M_D = 1000000.0  # dark photon mass, GeV
-EPS_G_D = 1  # kinetic mixing times dark magnetic coupling
+M_CHI = 1000.0  # dark monopole mass, GeV
+M_D = 1000.0  # dark photon mass, GeV
+EPS_G_D = 0.001  # kinetic mixing times dark magnetic coupling
 GEV2_TO_PB = 3.894e8  # 1 GeV^-2 = 3.894e8 picobarns
 
 # Each quark type: (PDG code, electric charge, mass in GeV)

@@ -3,7 +3,6 @@ This script is for production of fermionic dark magnetic monopole
 """
 
 import lhapdf
-import numpy as np
 from scipy.integrate import dblquad
 from scipy.special import spence
 import matplotlib.pyplot as plt
