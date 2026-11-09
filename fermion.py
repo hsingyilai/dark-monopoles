@@ -3,16 +3,12 @@ This script is for production of fermionic dark magnetic monopole
 """
 
 import lhapdf
-from scipy.integrate import dblquad
-from scipy.special import spence
-import matplotlib.pyplot as plt
+from scipy.integrate import quad
 import mpmath as mp
 import numpy as np
 
 
-def li2(z):
-    """Dilogarithm Li2(z). SciPy's spence uses an older convention: Li2(z) = spence(1 - z)."""
-    return spence(1 - z)
+mp.mp.dps = 80
 
 
 def psi(p: float, xi: float) -> float:
@@ -126,6 +122,8 @@ def f2_square(beta: float, l: float) -> float:
     beta: sqrt(1-4M^2/q^2)
     l: lambda^2/M^2, where lambda is the vector boson mass.
     """
+    beta = mp.mpf(beta)
+    l = mp.mpf(l)
     return re_f2(beta, l) ** 2 + im_f2(beta, l) ** 2
 
 
@@ -170,10 +168,25 @@ def sigma_hat(
     return c_1 * c_2 * c_3 * c_4
 
 
+def parton_luminosity(tau, pid):
+    """Lum_q(tau): integral from tau to 1 of dx1/x1 * L_q(x1, tau/x1)."""
+
+    def f(x1):
+        return luminosity(x1, tau / x1, pid) / x1
+
+    result, _ = quad(f, tau, 1, epsabs=0, epsrel=1e-4, limit=200)
+    return result
+
+
+def integrand(tau, pid, q, m_q):
+    s_hat = float(sigma_hat(tau * S, M_CHI, M_D, m_q, EPS_G_D, q, L_DECAY))
+    return s_hat * parton_luminosity(tau, pid)
+
+
 def luminosity(x1, x2, pid):
     """How often proton 1 gives a quark with momentum fraction x1 and proton 2 the
     matching antiquark with x2, plus the swapped case. pid: 1 = d, 2 = u, 3 = s, 4 = c."""
-    Q = mp.sqrt(
+    Q = np.sqrt(
         x1 * x2 * S
     )  # collision energy of the quark pair, used as the PDF scale
 
@@ -186,17 +199,12 @@ def luminosity(x1, x2, pid):
     return quark_1 * antiquark_2 + antiquark_1 * quark_2
 
 
-def integrand(x2, x1, pid, q, m_q):  # dblquad wants the INNER variable (x2) first
-    s = x1 * x2 * S
-    return luminosity(x1, x2, pid) * sigma_hat(s, M_CHI, M_D, m_q, EPS_G_D, q, L_DECAY)
-
-
 lhapdf.setVerbosity(0)
 pdf = lhapdf.mkPDF("NNPDF31_lo_as_0118", 0)
 
 S = 13600.0**2  # squared collision energy of the two protons (LHC Run 3), in GeV^2
 
-M_CHI = 100.0  # dark monopole mass, GeV
+M_CHI = 10.0  # dark monopole mass, GeV
 M_D = 100000.0  # dark photon mass, GeV
 L_DECAY = 1  # dark photon decay rate, GeV
 EPS_G_D = 1  # kinetic mixing times dark magnetic coupling
@@ -216,12 +224,10 @@ tau0 = 4 * M_CHI**2 / S  # smallest x1*x2 with enough energy to make the pair
 
 total = 0.0
 for pid, q, m_q in QUARKS:
-    sigma_q, error = dblquad(
+    sigma_q, error = quad(
         integrand,
         tau0,
-        1,  # x1 runs from tau0 to 1
-        lambda x1: tau0 / x1,
-        1,  # x2 runs from tau0/x1 to 1
+        1,  # tau runs from tau0 to 1
         args=(pid, q, m_q),
         epsabs=0,
         epsrel=1e-4,
