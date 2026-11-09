@@ -163,7 +163,7 @@ def sigma_hat(
         / ((s - m_D**2) ** 2 + m_D**2 * l_decay**2)
     )
     c_3 = f2_square(np.sqrt(1 - 4 * m_chi**2 / s), m_D**2 / m_chi**2)
-    c_4 = (s / 2 / np.sqrt(s - 4 * m_q**2) - 3 * np.sqrt(s / 4 - m_q**2)) * (
+    c_4 = (s / 2 / np.sqrt(s - 4 * m_q**2) - np.sqrt(s / 4 - m_q**2) / 3) * (
         s / 4 - m_chi**2
     ) ** 1.5
 
