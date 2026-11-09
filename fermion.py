@@ -6,6 +6,7 @@ import lhapdf
 from scipy.integrate import quad
 import mpmath as mp
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 mp.mp.dps = 80
@@ -168,19 +169,22 @@ def sigma_hat(
     return c_1 * c_2 * c_3 * c_4
 
 
-def parton_luminosity(tau, pid):
-    """Lum_q(tau): integral from tau to 1 of dx1/x1 * L_q(x1, tau/x1)."""
+def parton_luminosity(v, pid):
+    """Lum_q(tau) with tau = e^v: integral over u = ln(x1) from v to 0 of L_q(x1, tau/x1)."""
 
-    def f(x1):
-        return luminosity(x1, tau / x1, pid) / x1
+    def f(u):
+        # x1 = e^u, x2 = tau / x1 = e^(v - u), and dx1/x1 = du
+        return luminosity(np.exp(u), np.exp(v - u), pid)
 
-    result, _ = quad(f, tau, 1, epsabs=0, epsrel=1e-4, limit=200)
+    result, _ = quad(f, v, 0, epsabs=0, epsrel=1e-4, limit=200)
     return result
 
 
-def integrand(tau, pid, q, m_q):
-    s_hat = float(sigma_hat(tau * S, M_CHI, M_D, m_q, EPS_G_D, q, L_DECAY))
-    return s_hat * parton_luminosity(tau, pid)
+def integrand(v, pid, q, m_q):
+    tau = np.exp(v)
+    s_hat = float(sigma_hat(tau * S, M_CHI, M_D, m_q, EPS_G_D_CUBE, q, L_DECAY))
+    # dtau = tau dv: hence the extra factor of tau
+    return tau * s_hat * parton_luminosity(v, pid)
 
 
 def luminosity(x1, x2, pid):
@@ -207,7 +211,7 @@ S = 13600.0**2  # squared collision energy of the two protons (LHC Run 3), in Ge
 M_CHI = 10.0  # dark monopole mass, GeV
 M_D = 100000.0  # dark photon mass, GeV
 L_DECAY = 1  # dark photon decay rate, GeV
-EPS_G_D = 1  # kinetic mixing times dark magnetic coupling
+EPS_G_D_CUBE = 1  # kinetic mixing times dark magnetic coupling cubed
 GEV2_TO_PB = 3.894e8  # 1 GeV^-2 = 3.894e8 picobarns
 
 # Each quark type: (PDG code, electric charge, mass in GeV)
@@ -226,8 +230,8 @@ total = 0.0
 for pid, q, m_q in QUARKS:
     sigma_q, error = quad(
         integrand,
-        tau0,
-        1,  # tau runs from tau0 to 1
+        np.log(tau0),
+        0.0,  # v = ln(tau) runs from ln(tau0) to 0
         args=(pid, q, m_q),
         epsabs=0,
         epsrel=1e-4,
@@ -238,3 +242,36 @@ for pid, q, m_q in QUARKS:
     total += sigma_q
 
 print(f"total: {total * GEV2_TO_PB:.3e} pb")
+
+# Scan the total cross section against the dark monopole mass, 10 points per decade
+m_chi_values = np.geomspace(10.0, 1000.0, 21)
+totals = []
+for M_CHI in m_chi_values:  # integrand reads the global M_CHI, so this updates it
+    tau0 = 4 * M_CHI**2 / S
+
+    total = 0.0
+    for pid, q, m_q in QUARKS:
+        sigma_q, error = quad(
+            integrand,
+            np.log(tau0),
+            0.0,  # v = ln(tau) runs from ln(tau0) to 0
+            args=(pid, q, m_q),
+            epsabs=0,
+            epsrel=1e-4,
+        )
+        total += sigma_q
+
+    totals.append(total * GEV2_TO_PB)
+    print(f"M_CHI = {M_CHI:.1f} GeV: total {total * GEV2_TO_PB:.3e} pb")
+
+fig, ax = plt.subplots(figsize=(7, 5))
+ax.loglog(m_chi_values, totals, "-o", linewidth=2, markersize=5)
+ax.set_xlabel(r"Dark monopole mass $M_\chi$ (GeV)")
+ax.set_ylabel(r"$\sigma(pp \to \chi\bar{\chi})$ (pb)")
+ax.set_title(
+    rf"$\sqrt{{S}}$ = {np.sqrt(S) / 1000:.1f} TeV, $m_D$ = {M_D / 1000:.0f} TeV, "
+    rf"$\epsilon g_D^3$ = {EPS_G_D_CUBE}"
+)
+ax.grid(which="both", alpha=0.3)
+fig.tight_layout()
+plt.show()
