@@ -6,7 +6,6 @@ import lhapdf
 from scipy.integrate import quad
 import mpmath as mp
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 mp.mp.dps = 80
@@ -147,8 +146,9 @@ def sigma_hat(
         q: quark charge, 1/3 or 2/3.
         l_decay: decay rate of dark photon in GeV.
     """
-    # Below threshold, s < (2 m_chi)^2, there isn't enough energy to make the pair
-    if s <= 4 * m_chi**2:
+    # Below threshold there isn't enough energy: s must exceed (2 m_chi)^2 for the pair,
+    # and (2 m_q)^2 for the quark velocity in c_4 to be real
+    if s <= max(4 * m_chi**2, 4 * m_q**2):
         return 0.0
 
     e = 0.3  # electric coupling
@@ -209,7 +209,7 @@ pdf = lhapdf.mkPDF("NNPDF31_lo_as_0118", 0)
 S = 13600.0**2  # squared collision energy of the two protons (LHC Run 3), in GeV^2
 
 M_CHI = 10.0  # dark monopole mass, GeV
-M_D = 100000.0  # dark photon mass, GeV
+M_D = 10.0  # dark photon mass, GeV
 L_DECAY = 1  # dark photon decay rate, GeV
 EPS_G_D_CUBE = 1  # kinetic mixing times dark magnetic coupling cubed
 GEV2_TO_PB = 3.894e8  # 1 GeV^-2 = 3.894e8 picobarns
@@ -224,30 +224,9 @@ QUARKS = [
 ]  # bottom
 
 
-tau0 = 4 * M_CHI**2 / S  # smallest x1*x2 with enough energy to make the pair
-
-total = 0.0
-for pid, q, m_q in QUARKS:
-    sigma_q, error = quad(
-        integrand,
-        np.log(tau0),
-        0.0,  # v = ln(tau) runs from ln(tau0) to 0
-        args=(pid, q, m_q),
-        epsabs=0,
-        epsrel=1e-4,
-    )
-    print(
-        f"quark {pid}: {sigma_q * GEV2_TO_PB:.3e} pb   (error {error * GEV2_TO_PB:.1e} pb)"
-    )
-    total += sigma_q
-
-print(f"total: {total * GEV2_TO_PB:.3e} pb")
-
-# Scan the total cross section against the dark monopole mass, 10 points per decade
-m_chi_values = np.geomspace(10.0, 1000.0, 21)
-totals = []
-for M_CHI in m_chi_values:  # integrand reads the global M_CHI, so this updates it
-    tau0 = 4 * M_CHI**2 / S
+# Only runs for "python fermion.py", not when another script does "import fermion"
+if __name__ == "__main__":
+    tau0 = 4 * M_CHI**2 / S  # smallest x1*x2 with enough energy to make the pair
 
     total = 0.0
     for pid, q, m_q in QUARKS:
@@ -259,19 +238,9 @@ for M_CHI in m_chi_values:  # integrand reads the global M_CHI, so this updates 
             epsabs=0,
             epsrel=1e-4,
         )
+        print(
+            f"quark {pid}: {sigma_q * GEV2_TO_PB:.3e} pb   (error {error * GEV2_TO_PB:.1e} pb)"
+        )
         total += sigma_q
 
-    totals.append(total * GEV2_TO_PB)
-    print(f"M_CHI = {M_CHI:.1f} GeV: total {total * GEV2_TO_PB:.3e} pb")
-
-fig, ax = plt.subplots(figsize=(7, 5))
-ax.loglog(m_chi_values, totals, "-o", linewidth=2, markersize=5)
-ax.set_xlabel(r"Dark monopole mass $M_\chi$ (GeV)")
-ax.set_ylabel(r"$\sigma(pp \to \chi\bar{\chi})$ (pb)")
-ax.set_title(
-    rf"$\sqrt{{S}}$ = {np.sqrt(S) / 1000:.1f} TeV, $m_D$ = {M_D / 1000:.0f} TeV, "
-    rf"$\epsilon g_D^3$ = {EPS_G_D_CUBE}"
-)
-ax.grid(which="both", alpha=0.3)
-fig.tight_layout()
-plt.show()
+    print(f"total: {total * GEV2_TO_PB:.3e} pb")
