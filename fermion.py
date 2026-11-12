@@ -187,6 +187,48 @@ def integrand(v, pid, q, m_q):
     return tau * s_hat * parton_luminosity(v, pid)
 
 
+def sigma_from_quark(pid, q, m_q, epsrel=1e-4):
+    """Total pp cross section from one quark flavour, in GeV^-2, and its error estimate.
+    Uses the current module values of M_CHI, M_D, L_DECAY, EPS_G_D_CUBE and S.
+    pid, q, m_q: PDG code, electric charge and mass of the quark, as in QUARKS.
+    """
+    # Start at the threshold: quad has trouble with the step in sigma_hat there
+    v_min = np.log(max(4 * M_CHI**2, 4 * m_q**2) / S)
+
+    # The resonance at s = m_D^2 is a peak about L_DECAY / m_D wide in v. Give it its own
+    # short range so the peak can't fall between quad's sample points.
+    v_pole = np.log(M_D**2 / S)
+    half_width = 30 * L_DECAY / M_D
+    if v_min < v_pole < 0:
+        # a set drops duplicate limits when the window touches an end of the range
+        v_limits = sorted(
+            {
+                v_min,
+                max(v_min, v_pole - half_width),
+                min(0.0, v_pole + half_width),
+                0.0,
+            }
+        )
+    else:
+        v_limits = [v_min, 0.0]
+
+    sigma_q = 0.0
+    error = 0.0
+    for v_low, v_high in zip(v_limits, v_limits[1:]):
+        piece, piece_error = quad(
+            integrand,
+            v_low,
+            v_high,
+            args=(pid, q, m_q),
+            epsabs=0,
+            epsrel=epsrel,
+            limit=200,
+        )
+        sigma_q += piece
+        error += piece_error
+    return sigma_q, error
+
+
 def luminosity(x1, x2, pid):
     """How often proton 1 gives a quark with momentum fraction x1 and proton 2 the
     matching antiquark with x2, plus the swapped case. pid: 1 = d, 2 = u, 3 = s, 4 = c."""
@@ -208,9 +250,9 @@ pdf = lhapdf.mkPDF("NNPDF31_lo_as_0118", 0)
 
 S = 13600.0**2  # squared collision energy of the two protons (LHC Run 3), in GeV^2
 
-M_CHI = 10.0  # dark monopole mass, GeV
-M_D = 10.0  # dark photon mass, GeV
-L_DECAY = 1  # dark photon decay rate, GeV
+M_CHI = 1.0  # dark monopole mass, GeV
+M_D = 2.0  # dark photon mass, GeV
+L_DECAY = 0.01  # dark photon decay rate, GeV
 EPS_G_D_CUBE = 1  # kinetic mixing times dark magnetic coupling cubed
 GEV2_TO_PB = 3.894e8  # 1 GeV^-2 = 3.894e8 picobarns
 
@@ -226,18 +268,9 @@ QUARKS = [
 
 # Only runs for "python fermion.py", not when another script does "import fermion"
 if __name__ == "__main__":
-    tau0 = 4 * M_CHI**2 / S  # smallest x1*x2 with enough energy to make the pair
-
     total = 0.0
     for pid, q, m_q in QUARKS:
-        sigma_q, error = quad(
-            integrand,
-            np.log(tau0),
-            0.0,  # v = ln(tau) runs from ln(tau0) to 0
-            args=(pid, q, m_q),
-            epsabs=0,
-            epsrel=1e-4,
-        )
+        sigma_q, error = sigma_from_quark(pid, q, m_q)
         print(
             f"quark {pid}: {sigma_q * GEV2_TO_PB:.3e} pb   (error {error * GEV2_TO_PB:.1e} pb)"
         )

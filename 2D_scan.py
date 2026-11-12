@@ -5,7 +5,6 @@ in the dark monopole mass and the dark photon mass, and plots the result.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.integrate import quad
 
 import fermion
 
@@ -14,13 +13,13 @@ import fermion
 # Scan range of the dark monopole mass, in GeV. Below about 0.83 GeV the collision energy
 # 2 * M_CHI drops under the PDF grid's lowest Q (1.65 GeV) and LHAPDF extrapolates silently.
 M_CHI_MIN = 1.0
-M_CHI_MAX = 100.0
-N_M_CHI = 11  # number of log-spaced points; the run time grows as N_M_CHI * N_M_D
+M_CHI_MAX = 1000.0
+N_M_CHI = 21  # number of log-spaced points; the run time grows as N_M_CHI * N_M_D
 
 # Scan range of the dark photon mass, in GeV
 M_D_MIN = 0.1
-M_D_MAX = 1000.0
-N_M_D = 11  # number of log-spaced points
+M_D_MAX = 10000.0
+N_M_D = 21  # number of log-spaced points
 
 # These override the values in fermion.py for this scan
 fermion.L_DECAY = 0.01  # dark photon decay rate, GeV
@@ -47,43 +46,12 @@ totals = np.zeros((N_M_D, N_M_CHI))  # totals[i, j]: m_d_values[i], m_chi_values
 
 for i, m_d in enumerate(m_d_values):
     for j, m_chi in enumerate(m_chi_values):
-        # fermion.integrand reads these two values from the fermion module
+        # fermion.sigma_from_quark reads these two values from the fermion module
         fermion.M_D = m_d
         fermion.M_CHI = m_chi
 
         for pid, q, m_q in fermion.QUARKS:
-            # Start at the threshold: quad has trouble with the step in sigma_hat there
-            v_min = np.log(max(4 * m_chi**2, 4 * m_q**2) / fermion.S)
-
-            # The resonance at s = m_D^2 is a peak about L_DECAY / m_D wide in v. Give it its own
-            # short range so the peak can't fall between quad's sample points.
-            v_pole = np.log(m_d**2 / fermion.S)
-            half_width = 30 * fermion.L_DECAY / m_d
-            if v_min < v_pole < 0:
-                # a set drops duplicate limits when the window touches an end of the range
-                v_limits = sorted(
-                    {
-                        v_min,
-                        max(v_min, v_pole - half_width),
-                        min(0.0, v_pole + half_width),
-                        0.0,
-                    }
-                )
-            else:
-                v_limits = [v_min, 0.0]
-
-            sigma_q = 0.0
-            for v_low, v_high in zip(v_limits, v_limits[1:]):
-                piece, error = quad(
-                    fermion.integrand,
-                    v_low,
-                    v_high,
-                    args=(pid, q, m_q),
-                    epsabs=0,
-                    epsrel=EPSREL,
-                    limit=200,
-                )
-                sigma_q += piece
+            sigma_q, error = fermion.sigma_from_quark(pid, q, m_q, epsrel=EPSREL)
             totals[i, j] += sigma_q * fermion.GEV2_TO_PB
         print(
             f"M_D = {m_d:.2f} GeV, M_CHI = {m_chi:.2f} GeV: total {totals[i, j]:.3e} pb"
