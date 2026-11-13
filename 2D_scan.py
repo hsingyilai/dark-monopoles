@@ -14,12 +14,12 @@ import fermion
 # 2 * M_CHI drops under the PDF grid's lowest Q (1.65 GeV) and LHAPDF extrapolates silently.
 M_CHI_MIN = 1.0
 M_CHI_MAX = 1000.0
-N_M_CHI = 3  # number of log-spaced points; the run time grows as N_M_CHI * N_M_D
+N_M_CHI = 21  # number of log-spaced points; the run time grows as N_M_CHI * N_M_D
 
 # Scan range of the dark photon mass, in GeV
 M_D_MIN = 0.1
 M_D_MAX = 10000.0
-N_M_D = 3  # number of log-spaced points
+N_M_D = 21  # number of log-spaced points
 
 # These override the values in fermion.py for this scan
 fermion.EPS = 0.01  # kinetic mixing
