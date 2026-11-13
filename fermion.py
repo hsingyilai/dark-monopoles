@@ -151,7 +151,8 @@ def sigma_hat(
     if s <= max(4 * m_chi**2, 4 * m_q**2):
         return 0.0
 
-    e = 0.3  # electric coupling
+    # electric coupling, from the same ALPHA as the dark photon width
+    e = np.sqrt(4 * np.pi * ALPHA)
 
     c_1 = 1 / np.pi * (epsilon_g_D_cube * q * e * m_D / 8 / np.pi**2 / m_chi) ** 2
     # Split the formula into parts for programming
@@ -169,6 +170,25 @@ def sigma_hat(
     return c_1 * c_2 * c_3 * c_4
 
 
+def width_to_pair(alpha, m_v, m):
+    """Decay width in GeV of a vector boson of mass m_v into a fermion pair of mass m each,
+    through a vector coupling with alpha = g^2 / (4 pi). Zero below threshold."""
+    if m_v <= 2 * m:
+        return 0.0
+    return alpha / 3 * m_v * np.sqrt(1 - 4 * m**2 / m_v**2) * (1 + 2 * m**2 / m_v**2)
+
+
+def dark_photon_width(m_D, m_chi):
+    """Total decay width of the dark photon in GeV: leptons and hadrons through the
+    kinetic mixing, plus the monopole pair when m_D > 2 m_chi."""
+    alpha_mix = EPS**2 * ALPHA
+    width = sum(width_to_pair(alpha_mix, m_D, m) for m in LEPTON_MASSES)
+    # hadrons: Gamma(A' -> hadrons) = R * Gamma(A' -> mu mu)
+    width += R_HADRONS * width_to_pair(alpha_mix, m_D, LEPTON_MASSES[1])
+    width += width_to_pair(G_D**2 / (4 * np.pi), m_D, m_chi)
+    return width
+
+
 def parton_luminosity(v, pid):
     """Lum_q(tau) with tau = e^v: integral over u = ln(x1) from v to 0 of L_q(x1, tau/x1)."""
 
@@ -182,23 +202,24 @@ def parton_luminosity(v, pid):
 
 def integrand(v, pid, q, m_q):
     tau = np.exp(v)
-    s_hat = float(sigma_hat(tau * S, M_CHI, M_D, m_q, EPS_G_D_CUBE, q, L_DECAY))
+    width = dark_photon_width(M_D, M_CHI)
+    s_hat = float(sigma_hat(tau * S, M_CHI, M_D, m_q, EPS * G_D**3, q, width))
     # dtau = tau dv: hence the extra factor of tau
     return tau * s_hat * parton_luminosity(v, pid)
 
 
 def sigma_from_quark(pid, q, m_q, epsrel=1e-4):
     """Total pp cross section from one quark flavour, in GeV^-2, and its error estimate.
-    Uses the current module values of M_CHI, M_D, L_DECAY, EPS_G_D_CUBE and S.
+    Uses the current module values of M_CHI, M_D, EPS, G_D and S.
     pid, q, m_q: PDG code, electric charge and mass of the quark, as in QUARKS.
     """
     # Start at the threshold: quad has trouble with the step in sigma_hat there
     v_min = np.log(max(4 * M_CHI**2, 4 * m_q**2) / S)
 
-    # The resonance at s = m_D^2 is a peak about L_DECAY / m_D wide in v. Give it its own
+    # The resonance at s = m_D^2 is a peak about (width / m_D) wide in v. Give it its own
     # short range so the peak can't fall between quad's sample points.
     v_pole = np.log(M_D**2 / S)
-    half_width = 30 * L_DECAY / M_D
+    half_width = 30 * dark_photon_width(M_D, M_CHI) / M_D
     if v_min < v_pole < 0:
         # a set drops duplicate limits when the window touches an end of the range
         v_limits = sorted(
@@ -250,10 +271,16 @@ pdf = lhapdf.mkPDF("NNPDF31_lo_as_0118", 0)
 
 S = 13600.0**2  # squared collision energy of the two protons (LHC Run 3), in GeV^2
 
-M_CHI = 1.0  # dark monopole mass, GeV
-M_D = 2.0  # dark photon mass, GeV
-L_DECAY = 0.01  # dark photon decay rate, GeV
-EPS_G_D_CUBE = 1  # kinetic mixing times dark magnetic coupling cubed
+M_CHI = 4.0  # dark monopole mass, GeV
+M_D = 10.0  # dark photon mass, GeV
+
+EPS = 0.01  # kinetic mixing
+G_D = 0.3  # dark magnetic coupling
+
+ALPHA = 1 / 137  # fine-structure constant, used in sigma_hat and the dark photon width
+R_HADRONS = 1.0  # sigma(ee -> hadrons) / sigma(ee -> mu mu), a rough value
+LEPTON_MASSES = [0.511e-3, 0.106, 1.777]  # electron, muon, tau masses, GeV
+
 GEV2_TO_PB = 3.894e8  # 1 GeV^-2 = 3.894e8 picobarns
 
 # Each quark type: (PDG code, electric charge, mass in GeV)

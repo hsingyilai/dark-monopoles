@@ -14,16 +14,16 @@ import fermion
 # 2 * M_CHI drops under the PDF grid's lowest Q (1.65 GeV) and LHAPDF extrapolates silently.
 M_CHI_MIN = 1.0
 M_CHI_MAX = 1000.0
-N_M_CHI = 21  # number of log-spaced points; the run time grows as N_M_CHI * N_M_D
+N_M_CHI = 3  # number of log-spaced points; the run time grows as N_M_CHI * N_M_D
 
 # Scan range of the dark photon mass, in GeV
 M_D_MIN = 0.1
 M_D_MAX = 10000.0
-N_M_D = 21  # number of log-spaced points
+N_M_D = 3  # number of log-spaced points
 
 # These override the values in fermion.py for this scan
-fermion.L_DECAY = 0.01  # dark photon decay rate, GeV
-fermion.EPS_G_D_CUBE = 1  # kinetic mixing times dark magnetic coupling cubed
+fermion.EPS = 0.01  # kinetic mixing
+fermion.G_D = 0.3  # dark magnetic coupling; the dark photon width follows from these
 fermion.S = 13600.0**2  # squared collision energy of the two protons, in GeV^2
 
 EPSREL = 1e-4  # relative accuracy of each integral; smaller is slower
@@ -72,8 +72,7 @@ ax.set_xlabel(r"Dark monopole mass $M_\chi$ (GeV)")
 ax.set_ylabel(r"Dark photon mass $m_D$ (GeV)")
 ax.set_title(
     rf"$\sqrt{{S}}$ = {np.sqrt(fermion.S) / 1000:.1f} TeV, "
-    rf"$\Gamma_D$ = {fermion.L_DECAY} GeV, "
-    rf"$\epsilon g_D^3$ = {fermion.EPS_G_D_CUBE}"
+    rf"$\epsilon$ = {fermion.EPS:g}, $g_D$ = {fermion.G_D:g}"
 )
 fig.colorbar(mesh, label=r"$\sigma(pp \to \chi\bar{\chi})$ (pb)")
 fig.tight_layout()
