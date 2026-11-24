@@ -3,6 +3,8 @@ This script scans the total cross section of fermionic dark magnetic monopole pr
 in the dark monopole mass and the dark photon mass, and plots the result.
 """
 
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -56,6 +58,34 @@ for i, m_d in enumerate(m_d_values):
         print(
             f"M_D = {m_d:.2f} GeV, M_CHI = {m_chi:.2f} GeV: total {totals[i, j]:.3e} pb"
         )
+
+# Save every point to results/ before plotting, so closing the plot window can't lose the scan.
+# The file name records the settings. An existing file is never overwritten: _2, _3, ... is added.
+results_dir = Path(__file__).parent / "results"
+results_dir.mkdir(exist_ok=True)
+name = (
+    f"s_channel_{np.sqrt(fermion.S) / 1000:g}TeV_eps{fermion.EPS:g}_gD{fermion.G_D:g}"
+    f"_{N_M_D}x{N_M_CHI}"
+)
+path = results_dir / f"{name}.csv"
+copy = 2
+while path.exists():
+    path = results_dir / f"{name}_{copy}.csv"
+    copy += 1
+header = (
+    "sigma(pp -> chi chibar), s-channel q qbar -> gamma* -> A' -> chi chibar, from 2D_scan.py\n"
+    f"sqrt(S) = {np.sqrt(fermion.S) / 1000:g} TeV, EPS = {fermion.EPS:g}, G_D = {fermion.G_D:g}, "
+    f"EPSREL = {EPSREL:g}, PDF {fermion.pdf.set().name}, no cuts\n"
+    f"m_D: {N_M_D} log points {M_D_MIN:g} to {M_D_MAX:g} GeV, "
+    f"m_chi: {N_M_CHI} log points {M_CHI_MIN:g} to {M_CHI_MAX:g} GeV\n"
+    'load: m_D, m_chi, sigma = np.loadtxt(path, delimiter=",", unpack=True)\n'
+    "m_D_GeV,m_chi_GeV,sigma_pb"
+)
+# one row per point, in the same order as the loop: m_D outer, m_chi inner
+m_d_grid, m_chi_grid = np.meshgrid(m_d_values, m_chi_values, indexing="ij")
+rows = np.column_stack([m_d_grid.ravel(), m_chi_grid.ravel(), totals.ravel()])
+np.savetxt(path, rows, delimiter=",", fmt="%.10g", header=header)
+print(f"Saved the scan to {path}")
 
 fig, ax = plt.subplots(figsize=(7.5, 5.5))
 mesh = ax.pcolormesh(

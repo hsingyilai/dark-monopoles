@@ -88,3 +88,6 @@ target/
 
 # Virtual environment
 .venv/
+
+# Scan results (may be unpublished)
+results/
